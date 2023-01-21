@@ -1,0 +1,50 @@
+apiVersion: resource.k8s.io/v1alpha1
+kind: ResourceClass
+metadata:
+  name: dra-ressource-class
+driverName: dractrlplugin
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dra-resource-config-map
+  namespace: default
+data:
+  dra-resource1: abc
+  dra-resource2: def
+---
+apiVersion: resource.k8s.io/v1alpha1
+kind: ResourceClaimTemplate
+metadata:
+  name: dra-ressource-claim-template
+  namespace: default
+spec:
+  metadata:
+    labels:
+      app: dra-resource
+  spec:
+    resourceClassName: dra-ressource-class
+    parametersRef:
+      kind: ConfigMap
+      name: dra-resource-config-map
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dra-ressource-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: with-resource
+    image: registry.k8s.io/e2e-test-images/busybox:1.29-2
+    command: ["sh", "-c", "set && mount && ls -la /dev/"]
+    resources:
+      claims:
+      - name: resource
+  - name: without-resource
+    image: registry.k8s.io/e2e-test-images/busybox:1.29-2
+    command: ["sh", "-c", "set && mount && ls -la /dev/"]
+  resourceClaims:
+  - name: resource
+    source:
+      resourceClaimTemplateName: dra-ressource-claim-template
